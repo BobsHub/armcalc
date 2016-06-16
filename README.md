@@ -1,2 +1,2 @@
-Arithmetic console calculator. enter expressions such as 2 * (3+5) - 7.2
+Arithmetic console calculator. enter expressions such as 2^(-.5) * (3.0 - 1 )
 
