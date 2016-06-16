@@ -152,7 +152,7 @@ term_mul:
 	b		term_mul			
 term_div:
 	teq		r1, #47		@ '/' detected  ?
-	bne		term_done
+	bne		term_pow
 	add		r0, r0, #1	@ Advance pointer to next character
 	ldr		r1, =addr_char
 	str		r0, [r1]
@@ -162,7 +162,21 @@ term_div:
 	ldmia		sp!, {r0, r1}
 	vmov.f64	d1, r0, r1
 	vdiv.f64	d0, d1, d0	@ Divide the first by the second number
-	b		term_mul		
+	b		term_mul
+term_pow:
+	teq		r1, #94		@ '^' detected ?
+	bne		term_done
+	add		r0, r0, #1	@ Advance pointer to next character
+	ldr		r1, =addr_char
+	str		r0, [r1]
+	vmov.f64	r0, r1, d0	@ Save base contained in d0
+	stmdb		sp!, {r0, r1}
+	bl		number		@ Get the exponent
+	ldmia		sp!, {r0, r1}
+	vmov.f64	d1, d0
+	vmov.f64	d0, r0, r1	@ Get the base
+	bl		pow		@ Call glibc  pow() to evaluate power	
+	b		term_mul
 term_done:
 	ldr		lr, [sp], #+8
 	bx		lr
