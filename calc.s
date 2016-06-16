@@ -1,14 +1,15 @@
 .data
-intro:     .ascii "Welcome to your friendly calculator.\n"
-           .asciz "Enter an expression, or an empty line to quit\n"
-output:    .asciz "\t= %f\n\n"
-error_msg: .asciz "Invalid expression!\n"
+intro:      .ascii "Welcome to your friendly calculator.\n"
+            .asciz "Enter an expression, or an empty line to quit\n"
+output:     .asciz "\t= %f\n\n"
+error_msg1: .asciz "Invalid expression!\n"
+error_msg2: .asciz "Input buffer exceeded!\n"
 
 dbl_zero: .double 0.0
 dbl_one:  .double 1.0
 dbl_ten:  .double 10.0
 
-.equ	BUFFLEN, 40	@ Maximum length for input string
+.equ	BUFFLEN, 60	@ Maximum length for input string
 .equ	DELIMIT, 10	@ Charater that delimits the string
 .equ	EXIT_NORMAL, 0
 .equ	EXIT_ERROR, 1
@@ -23,12 +24,26 @@ main:
 	str		lr, [sp, #-8]!
 	ldr		r0, =intro	@ Print intro message
 	bl		printf
+	
+	ldr		r0, =buffer	@ Insert Delimit character
+	mov		r1, #DELIMIT	@ at the end of the buffer
+	mov		r2, #BUFFLEN	@ string
+	sub		r2, r2, #1
+	strb		r1, [r0, r2]
+
 expression:
 	ldr		r0, =buffer	@ Get expression string from console
 	mov		r1, #BUFFLEN
 	ldr		r2, =stdin
 	ldr		r2, [r2]
 	bl		fgets
+	
+	ldr		r0, =buffer	@ Check if input exceeds buffer length
+	mov		r1, #BUFFLEN
+	sub		r1, r1, #1
+	ldrb		r1, [r0, r1]
+	teq		r1, #DELIMIT
+	bne		buff_over
 
 	ldr		r1, =addr_char	@ Save start of buffer in addr_char
 	str		r0, [r1]
@@ -43,7 +58,15 @@ expression:
 	vmov.f64	r2, r3, d0	@ Print the expression value
 	ldr		r0, =output
 	bl		printf
-	b		expression	
+	b		expression
+
+buff_over:
+	ldr		r0, =error_msg2
+	bl		printf
+	mov		r0, #EXIT_ERROR
+	mov		r7, #1
+	swi		0	
+
 end:
 	mov 		r0, #EXIT_NORMAL
 	ldr 		lr, [sp], #+8
@@ -220,7 +243,7 @@ expr_sub:
 	vsub.f64	d0, d1, d0	@ Subtract the second term from the first
 	b		expr_loop
 expr_invalid:				@ If we reach here the string is junk
-	ldr		r0, =error_msg
+	ldr		r0, =error_msg1
 	bl		printf
 	mov		r0, #EXIT_ERROR
 	mov		r7, #1
